@@ -1,0 +1,64 @@
+name: hecate-deploy
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: yarn install --frozen-lockfile
+      - run: yarn build
+      - name: zip build folder
+        uses: montudor/action-zip@v1
+        with:
+          args: zip -qq -r hecate.zip . -x "node_modules/*"
+      - name: copy file via ssh
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.DEV_SSH_HOST }}
+          username: ${{ secrets.DEV_SSH_USERNAME }}
+          key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}
+          port: 22
+          source: "hecate.zip"
+          target: "~/"
+      - name: ssh, unzip and redeploy
+        uses: appleboy/ssh-action@master
+        env:
+          ENV: ${{ vars.DEV_ENV }}
+        with:
+          host: ${{ secrets.DEV_SSH_HOST }}
+          username: ${{ secrets.DEV_SSH_USERNAME }}
+          key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}
+          port: 22
+          script_stop: true
+          envs: ENV
+          script: |
+            # prepare and unzip
+            cd ~
+            rm -rf /usr/src/code/hecate-temp/
+            mkdir -p /usr/src/code/hecate-temp/
+            unzip -qq hecate.zip -d /usr/src/code/hecate-temp/
+
+            # install packages
+            cd /usr/src/code/hecate-temp/
+            yarn install --frozen-lockfile
+            cd ~
+
+            # delete the current instance and rename the new one
+            rm -rf /usr/src/code/hecate/
+            mv /usr/src/code/hecate-temp /usr/src/code/hecate
+
+            # clean up
+            rm -rf hecate.zip
+            rm -rf /usr/src/code/hecate-temp/
+
+            # restart
+            pm2 restart hecate
