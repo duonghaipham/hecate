@@ -30,6 +30,9 @@ export default function UsersPage() {
           </div>
         )}
         <div>{data?.cell}</div>
+        <div>
+          {data?.location?.country}, {data?.location?.city}
+        </div>
       </div>
     </div>
   );
