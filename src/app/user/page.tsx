@@ -34,6 +34,7 @@ export default function UsersPage() {
         <div>
           {data?.location?.country}, {data?.location?.city}
         </div>
+        <div>{data?.gender}</div>
       </div>
     </div>
   );
