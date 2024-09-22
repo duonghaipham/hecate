@@ -31,15 +31,12 @@ jobs:
           target: "~/"
       - name: ssh, unzip and redeploy
         uses: appleboy/ssh-action@master
-        env:
-          ENV: ${{ vars.DEV_ENV }}
         with:
           host: ${{ secrets.DEV_SSH_HOST }}
           username: ${{ secrets.DEV_SSH_USERNAME }}
           key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}
           port: 22
           script_stop: true
-          envs: ENV
           script: |
             # prepare and unzip
             cd ~
